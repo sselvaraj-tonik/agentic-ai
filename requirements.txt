@@ -6,3 +6,4 @@ langchain-ollama
 requests
 pydantic
 python-dotenv
+python-multipart

@@ -63,7 +63,7 @@ class TestBankingAgent(unittest.TestCase):
             ]
         }
 
-        response = self.client.post("/chat", json={"query": "Get profile for 631234567890"})
+        response = self.client.post("/chat", data={"query": "Get profile for 631234567890"})
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"response": "The user profile has been retrieved."})

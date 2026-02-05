@@ -13,7 +13,12 @@ A production-grade, open-source AI agent for banking customer support, built wit
 
 1.  **Python 3.12+**
 2.  **Ollama**: [Download and Install Ollama](https://ollama.com/).
-    *   Pull the model you want to use (default is `llama3`):
+    *   **Crucial Step**: You must start the Ollama server and download a model.
+    *   Run this in a separate terminal:
+        ```bash
+        ollama serve
+        ```
+    *   Then run:
         ```bash
         ollama pull llama3
         ```
@@ -34,11 +39,9 @@ A production-grade, open-source AI agent for banking customer support, built wit
     The API will be available at `http://localhost:8000`.
 
 4.  **Test the Agent**:
-    Send a POST request to the chat endpoint:
+    You can use `curl` with form data:
     ```bash
-    curl -X POST "http://localhost:8000/chat" \
-         -H "Content-Type: application/json" \
-         -d '{"query": "Get profile for 631234567890"}'
+    curl --location 'http://localhost:8000/chat' --form 'query="Get profile for 631234567890"'
     ```
 
 ## Running with Docker
@@ -55,10 +58,22 @@ A production-grade, open-source AI agent for banking customer support, built wit
     docker run -p 8000:8000 -e OLLAMA_BASE_URL="http://host.docker.internal:11434" banking-agent
     ```
 
-## Configuration
+## Troubleshooting
 
-You can configure the application using environment variables or a `.env` file:
+### `[WinError 10061] No connection could be made...` or `httpx.ConnectError`
 
-*   `OLLAMA_BASE_URL`: URL of the Ollama instance (default: `http://localhost:11434`).
-*   `OLLAMA_MODEL`: Model to use (default: `llama3`).
-*   `BANK_API_URL`: URL of the banking API.
+This means the application cannot connect to Ollama.
+
+**Fix:**
+1.  Make sure **Ollama is installed**.
+2.  Make sure **Ollama is running**. Open your terminal and type:
+    ```bash
+    curl http://localhost:11434
+    ```
+    It should say "Ollama is running".
+3.  If it's not running, start it by opening the Ollama application or running `ollama serve`.
+
+### `Input should be a valid dictionary...`
+
+This means you sent JSON data but the API expected Form Data (or vice versa).
+*   **Correct Usage**: `curl ... --form 'query="Hi"'`

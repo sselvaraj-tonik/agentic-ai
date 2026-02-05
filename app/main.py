@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException
+from typing import Annotated
+from fastapi import FastAPI, HTTPException, Form
 from pydantic import BaseModel
 from langchain_core.messages import HumanMessage
 from app.agent import agent_executor
@@ -10,28 +11,24 @@ load_dotenv()
 app = FastAPI(
     title="Banking Agent AI",
     description="An Open Source Agentic AI for Banking Customer Support",
-    version="1.0.0"
+    version="1.1.0"
 )
-
-class ChatRequest(BaseModel):
-    query: str
 
 class ChatResponse(BaseModel):
     response: str
 
 @app.post("/chat", response_model=ChatResponse)
-def chat_endpoint(request: ChatRequest):
+def chat_endpoint(query: Annotated[str, Form()]):
     """
     Endpoint to interact with the Banking Agent.
-    Accepts a natural language query and returns the agent's response.
+    Accepts a 'query' form field (multipart/form-data or application/x-www-form-urlencoded).
 
-    Defined as a synchronous function (def instead of async def) so FastAPI
-    runs it in a threadpool, preventing blocking of the main event loop
-    during synchronous LLM and network operations.
+    Example curl:
+      curl -X POST http://localhost:8000/chat -F "query=Hello"
     """
     try:
         # Create the initial state with the user's message
-        initial_state = {"messages": [HumanMessage(content=request.query)]}
+        initial_state = {"messages": [HumanMessage(content=query)]}
 
         # Run the agent
         result = agent_executor.invoke(initial_state)
