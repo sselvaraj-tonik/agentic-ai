@@ -1,0 +1,7 @@
+setx OLLAMA_MODELS "D:\ollama_models"
+ollama serve
+ollama pull llama3.2:3b
+.\OllamaSetup.exe /DIR=D:\ollama
+setx OLLAMA_MODELS "D:\ollama_models"
+set OLLAMA_HOST=127.0.0.1:8888
+ollama list
