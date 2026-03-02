@@ -12,3 +12,13 @@ class CustomerProfile(BaseModel):
 class AccountResponse(BaseModel):
     profile: Optional[CustomerProfile] = None
     error: Optional[str] = None
+
+class Payee(BaseModel):
+    name: str
+    payee_id: str
+    bank: str
+
+class TransferRequest(BaseModel):
+    payee_id: str
+    amount: float
+    currency: str = "PHP"

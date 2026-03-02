@@ -13,7 +13,7 @@ DEPARTMENT CAPABILITIES:
    - Tools available: [get_customer_profile]
    - Description: Handles inquiries about the user's identity, general profile, and account status.
 
-2. 'transfers_agent'
+2. 'common_agent'
    - Tools available: [search_payee, execute_transfer]
    - Description: Handles the movement of funds and the management/searching of people the user wants to send money to.
 
@@ -26,7 +26,7 @@ DEPARTMENT CAPABILITIES:
 
 EXAMPLES:
 User: "Send 10k to Xavier."
-Decision: transfers_agent
+Decision: common_agent
 
 User: "How much is my EMI this month?"
 Decision: loans_agent
