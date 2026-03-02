@@ -11,7 +11,11 @@ class Settings(BaseSettings):
 
     # API Configuration
     BANK_API_BASE_URL: str = "https://test.alb.tonikbank.com/customer/v1/"
+    DRUPAL_FAQ_URL: str = "https://example-drupal.com/jsonapi/node/faq"
     API_TIMEOUT: int = 10
+
+    # Database Configuration
+    DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/postgres"
 
     # Application Configuration
     APP_NAME: str = "Banking Agent AI"

@@ -8,3 +8,6 @@ pydantic
 python-dotenv
 python-multipart
 pydantic_settings
+langchain-postgres
+psycopg[binary]
+beautifulsoup4
