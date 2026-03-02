@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://127.0.0.1:11434"
 
     # API Configuration
-    BANK_API_URL: str = "https://test.alb.tonikbank.com/customer/v1/profileinfo"
+    BANK_API_BASE_URL: str = "https://test.alb.tonikbank.com/customer/v1/"
     API_TIMEOUT: int = 10
 
     # Application Configuration
