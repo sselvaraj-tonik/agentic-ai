@@ -10,12 +10,12 @@ Analyze the user's request and the conversation history. Route the user to the s
 DEPARTMENT CAPABILITIES:
 
 1. 'accounts_agent'
-   - Tools available: [get_customer_profile]
-   - Description: Handles inquiries about the user's identity, general profile, and account status.
+   - Tools available: [get_customer_profile, search_payee, execute_transfer]
+   - Description: Handles inquiries about the user's identity, general profile, account status, and the movement of funds / executing transfers.
 
 2. 'common_agent'
-   - Tools available: [search_payee, execute_transfer]
-   - Description: Handles the movement of funds and the management/searching of people the user wants to send money to.
+   - Tools available: []
+   - Description: Handles general banking questions, FAQs, and common inquiries not related to specific accounts or loans.
 
 3. 'loans_agent'
    - Tools available: [check_loan_status, process_loan_payment]
@@ -26,7 +26,7 @@ DEPARTMENT CAPABILITIES:
 
 EXAMPLES:
 User: "Send 10k to Xavier."
-Decision: common_agent
+Decision: accounts_agent
 
 User: "How much is my EMI this month?"
 Decision: loans_agent

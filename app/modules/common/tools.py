@@ -1,2 +1,3 @@
 from langchain_core.tools import tool
-from typing import List, Dict
+
+# Placeholder for future common agent tools

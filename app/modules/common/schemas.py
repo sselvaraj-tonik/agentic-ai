@@ -1,2 +1,3 @@
-from typing import List, Optional
 from pydantic import BaseModel
+
+# Placeholder for future common agent input schemas
