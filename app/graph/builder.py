@@ -43,7 +43,11 @@ def build_graph():
 
     # Add isolated tool nodes
     builder.add_node("accounts_tools", ToolNode(accounts_tools_list))
-    builder.add_node("common_tools", ToolNode(common_tools_list))
+
+    # Only add common_tools node if there are actually tools to add
+    if common_tools_list:
+        builder.add_node("common_tools", ToolNode(common_tools_list))
+
     builder.add_node("loans_tools", ToolNode(loans_tools_list))
 
     # Entry point -> Always start at the Supervisor
@@ -54,12 +58,16 @@ def build_graph():
 
     # Agent -> Tool Routing (or END if they just replied to the user)
     builder.add_conditional_edges("accounts_agent", accounts_tools_condition)
-    builder.add_conditional_edges("common_agent", common_tools_condition)
+    if common_tools_list:
+        builder.add_conditional_edges("common_agent", common_tools_condition)
+    else:
+        builder.add_edge("common_agent", END)
     builder.add_conditional_edges("loans_agent", loans_tools_condition)
 
     # Tool -> Agent looping (tools send data back to their specific agent)
     builder.add_edge("accounts_tools", "accounts_agent")
-    builder.add_edge("common_tools", "common_agent")
+    if common_tools_list:
+        builder.add_edge("common_tools", "common_agent")
     builder.add_edge("loans_tools", "loans_agent")
 
     # Initialize memory checkpointer for stateful conversations
