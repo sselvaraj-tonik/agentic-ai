@@ -25,4 +25,6 @@ def get_vector_store() -> PGVector:
         use_jsonb=True,
     )
 
+    vector_store.create_tables_if_not_exists()
+
     return vector_store
