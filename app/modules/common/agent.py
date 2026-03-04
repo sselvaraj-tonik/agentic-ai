@@ -1,15 +1,22 @@
 from langchain_core.messages import SystemMessage
 from app.core.state import AgentState
 from app.core.llm import get_llm
+from app.modules.common.tools import search_company_knowledge
 
 llm = get_llm()
-# Currently an empty structure as requested. Tools will be added later.
-tools = []
-common_llm = llm
+# Add the tools for the common agent
+tools = [search_company_knowledge]
+common_llm = llm.bind_tools(tools)
 
 def common_agent_node(state: AgentState):
-    prompt = SystemMessage(content="""You are the Common Agent.
-    You handle general banking questions and FAQs.
-    (This is currently a placeholder until specific requirements are provided).""")
+    prompt = SystemMessage(content="""You are the Common Agent for Tonik Bank. 
+    Your primary job is to answer general banking questions, "how-to" inquiries, and FAQs.
+
+    STRICT RULES:
+    1. MANDATORY TOOL USE: For ANY question about the bank, its features, or FAQs, you MUST call the 'search_company_knowledge' tool.
+    2. NO HALLUCINATION: You must base your answer EXACTLY on the text returned by the tool. 
+    3. DO NOT GUESS: If the exact steps or information are not in the tool's text, DO NOT make up your own instructions. 
+    4. FALLBACK: If the answer is not in the retrieved data, politely state: "I couldn't find the exact information for that in our knowledge base. Please reach out to Tonik Bank customer support for further assistance."
+    """)
     response = common_llm.invoke([prompt] + state["messages"])
     return {"messages": [response]}

@@ -8,3 +8,8 @@ pydantic
 python-dotenv
 python-multipart
 pydantic_settings
+langchain-postgres
+langchain_community
+psycopg[binary]
+beautifulsoup4
+langchain-text-splitters

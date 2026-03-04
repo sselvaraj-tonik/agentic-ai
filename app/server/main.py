@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from app.config.settings import settings
 from app.config.logging import setup_logging
-from app.server.routers import chat
+from app.server.routers import chat, ingest
 
 # Setup logging
 setup_logging()
@@ -15,6 +15,7 @@ app = FastAPI(
 
 # Include Routers
 app.include_router(chat.router)
+app.include_router(ingest.router)
 
 @app.get("/health")
 def health_check():

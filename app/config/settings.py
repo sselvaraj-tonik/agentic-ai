@@ -1,27 +1,27 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    """
-    Application Settings using Pydantic Settings.
-    Reads from environment variables and .env file.
-    """
     # LLM Configuration
-    OLLAMA_MODEL: str = "llama3.1"
-    OLLAMA_BASE_URL: str = "http://127.0.0.1:11434"
+    OLLAMA_MODEL: str
+    OLLAMA_BASE_URL: str
 
     # API Configuration
-    BANK_API_BASE_URL: str = "https://test.alb.tonikbank.com/customer/v1/"
+    BANK_API_BASE_URL: str
+    DRUPAL_FAQ_URL: str
     API_TIMEOUT: int = 10
 
+    # Database Configuration
+    DATABASE_URL: str
+
     # Application Configuration
-    APP_NAME: str = "Banking Agent AI"
-    APP_VERSION: str = "1.2.0"
+    APP_NAME: str
+    APP_VERSION: str
     DEBUG: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        extra="ignore"  # Allow extra fields in .env
+        extra="ignore"
     )
 
 settings = Settings()
