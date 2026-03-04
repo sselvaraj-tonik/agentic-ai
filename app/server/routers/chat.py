@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from langchain_core.messages import HumanMessage
 from app.graph.builder import graph_executor
 from app.config.logging import logger
+from app.core.decorators import log_execution_time
 
 class ChatResponse(BaseModel):
     response: str
@@ -11,6 +12,7 @@ class ChatResponse(BaseModel):
 router = APIRouter()
 
 @router.post("/chat", response_model=ChatResponse)
+@log_execution_time
 def chat_endpoint(
     query: Annotated[str, Form()],
     thread_id: Annotated[str, Form()] = "default_thread_1"

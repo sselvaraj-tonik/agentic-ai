@@ -2,12 +2,14 @@ from langchain_core.messages import SystemMessage
 from app.core.state import AgentState
 from app.core.llm import get_llm
 from app.modules.common.tools import search_company_knowledge
+from app.core.decorators import log_execution_time
 
 llm = get_llm()
 # Add the tools for the common agent
 tools = [search_company_knowledge]
 common_llm = llm.bind_tools(tools)
 
+@log_execution_time
 def common_agent_node(state: AgentState):
     prompt = SystemMessage(content="""You are the Common Agent for Tonik Bank. 
     Your primary job is to answer general banking questions, "how-to" inquiries, and FAQs.

@@ -2,6 +2,8 @@ from langchain_core.messages import SystemMessage
 from app.core.state import AgentState, RouteResponse
 from app.core.llm import get_llm
 from app.config.logging import logger
+from app.config.settings import settings
+from app.core.decorators import log_execution_time
 
 # Production-grade prompt with Capability Mapping and Few-Shot Examples
 SUPERVISOR_PROMPT = """You are an expert banking routing supervisor for Tonik Bank.
@@ -34,6 +36,7 @@ User: "About Tonikbank" -> Decision: common_agent
 User: "Thank you, that's all I needed." -> Decision: FINISH
 """
 
+@log_execution_time
 def supervisor_node(state: AgentState):
     llm = get_llm()
     try:
@@ -41,12 +44,15 @@ def supervisor_node(state: AgentState):
         router = llm.with_structured_output(RouteResponse)
         messages = [SystemMessage(content=SUPERVISOR_PROMPT)] + state["messages"]
         decision = router.invoke(messages)
+        if settings.DEBUG:
+            logger.debug(f"[ROUTING DECISION] Supervisor decided to route to: {decision.next_node}")
         return {"next_node": decision.next_node}
     except Exception as e:
         # Fallback in case of an LLM or connection error
         logger.error(f"Supervisor routing error: {e}")
         return {"next_node": "FINISH"}
 
+@log_execution_time
 def route_supervisor(state: AgentState):
     """Routes from the supervisor to the specific agent, or ends the graph."""
     if state.get("next_node") == "FINISH":
