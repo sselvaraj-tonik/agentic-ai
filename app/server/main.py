@@ -32,7 +32,7 @@ app.include_router(ingest.router)
 @app.get("/html", response_class=HTMLResponse)
 def read_root():
     """Serves the chat interface HTML page."""
-    html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../chat.html"))
+    html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../chat/index.html"))
     if os.path.exists(html_path):
         with open(html_path, "r", encoding="utf-8") as f:
             return f.read()
