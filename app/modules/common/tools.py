@@ -5,12 +5,7 @@ from app.modules.common.schemas import SearchCompanyKnowledgeInput
 
 logger = logging.getLogger(__name__)
 
-# Initialize the vector store globally
-try:
-    vector_store = get_vector_store()
-except Exception as e:
-    logger.error(f"Failed to initialize vector store: {e}")
-    vector_store = None
+vector_store = None
 
 @tool("search_company_knowledge", args_schema=SearchCompanyKnowledgeInput)
 def search_company_knowledge(query: str) -> str:
@@ -18,8 +13,13 @@ def search_company_knowledge(query: str) -> str:
     Searches the company knowledge base (FAQs, policies) for the given query.
     Returns the top 3 most relevant results formatted as a readable string.
     """
+    global vector_store
     if vector_store is None:
-        return "Error: Company knowledge base is currently unavailable."
+        try:
+            vector_store = get_vector_store()
+        except Exception as e:
+            logger.error(f"Failed to initialize vector store: {e}")
+            return "Error: Company knowledge base is currently unavailable."
 
     try:
         # Perform similarity search, returning top 3 results

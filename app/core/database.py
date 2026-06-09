@@ -1,5 +1,5 @@
 from langchain_postgres.vectorstores import PGVector
-from langchain_community.embeddings import OllamaEmbeddings
+from langchain_ollama import OllamaEmbeddings
 from app.config.settings import settings
 
 def get_vector_store() -> PGVector:
