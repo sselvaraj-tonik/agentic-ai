@@ -29,7 +29,7 @@ app.add_middleware(
 app.include_router(chat.router)
 app.include_router(ingest.router)
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/html", response_class=HTMLResponse)
 def read_root():
     """Serves the chat interface HTML page."""
     html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../chat.html"))
