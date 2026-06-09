@@ -5,3 +5,4 @@ ollama pull llama3.2:3b
 setx OLLAMA_MODELS "D:\ollama_models"
 set OLLAMA_HOST=127.0.0.1:8888
 ollama list
+ollama show --modelfile llama3.1
