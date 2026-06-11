@@ -1,5 +1,5 @@
 // JavaScript extracted from original chat.html inline script
-const API_URL = "https://3a70f64384f8586f-dot-asia-southeast1.notebooks.googleusercontent.com/proxy/8000/chat";
+const API_URL = "chat";
 const messagesContainer = document.getElementById("chat-messages");
 const chatInput = document.getElementById("chat-input");
 const threadInput = document.getElementById("thread-id");
