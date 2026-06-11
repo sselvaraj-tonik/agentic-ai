@@ -6,3 +6,18 @@ setx OLLAMA_MODELS "D:\ollama_models"
 set OLLAMA_HOST=127.0.0.1:8888
 ollama list
 ollama show --modelfile llama3.1
+
+
+
+
+
+
+
+
+VLLM
+
+vllm serve Qwen/Qwen2.5-14B-Instruct-AWQ \
+  --quantization awq \
+  --port 8000 \
+  --max-model-len 4096 \
+  --gpu-memory-utilization 0.90
