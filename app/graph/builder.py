@@ -1,9 +1,12 @@
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode
 from langgraph.checkpoint.memory import MemorySaver
+from langchain_postgres import PostgresSaver
+from psycopg_pool import ConnectionPool
 
 from app.core.state import AgentState
 from app.modules.supervisor.agent import supervisor_node, route_supervisor
+from app.config.settings import settings, PersistenceType
 
 # Import Agent Nodes
 from app.modules.accounts.agent import accounts_agent_node, tools as accounts_tools_list
@@ -62,11 +65,21 @@ def build_graph():
     builder.add_edge("common_tools", "common_agent")
     builder.add_edge("loans_tools", "loans_agent")
 
-    # Initialize memory checkpointer for stateful conversations
-    memory = MemorySaver()
+    # Initialize checkpointer based on configuration
+    if settings.PERSISTENCE_TYPE == PersistenceType.POSTGRES:
+        # Create a connection pool for PostgresSaver
+        # We need to use synchronous connection for PostgresSaver if using with sync graph
+        # or handle async appropriately. LangGraph's compile takes a checkpointer.
+        pool = ConnectionPool(conninfo=settings.DATABASE_URL, max_size=10)
+        checkpointer = PostgresSaver(pool)
+        # Note: In a real production app, you'd want to call checkpointer.setup()
+        # but PostgresSaver handles table creation if needed or you can do it manually.
+        checkpointer.setup()
+    else:
+        checkpointer = MemorySaver()
 
     # Compile the final agent executor
-    agent_executor = builder.compile(checkpointer=memory)
+    agent_executor = builder.compile(checkpointer=checkpointer)
 
     return agent_executor
 
