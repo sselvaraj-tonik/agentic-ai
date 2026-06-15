@@ -56,5 +56,11 @@ async def chat_endpoint(
         )
 
     except Exception as e:
+        import traceback
+        # Capture the full stack trace as a string
+        error_details = traceback.format_exc()
         logger.error(f"Chat endpoint error for thread_id={thread_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error occurred while processing your request.")
+        logger.error(f"Full Traceback: {error_details}")
+        
+        # Raise the actual error detail to the client temporarily to debug
+        raise HTTPException(status_code=500, detail=str(e))
