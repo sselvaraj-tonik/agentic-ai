@@ -20,7 +20,7 @@ from app.modules.loans.agent import loans_agent_node, tools as loans_tools_list
 # Central array containing your specialized agents. 
 # Adding a new domain agent only requires dropping its config here!
 AGENT_REGISTRY = [
-    # {"name": "accounts", "node": accounts_agent_node, "tools": accounts_tools_list},
+    {"name": "accounts", "node": accounts_agent_node, "tools": accounts_tools_list},
     {"name": "common", "node": common_agent_node, "tools": common_tools_list},
     # {"name": "loans", "node": loans_agent_node, "tools": loans_tools_list},
 ]

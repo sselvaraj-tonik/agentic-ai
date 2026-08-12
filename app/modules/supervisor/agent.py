@@ -62,7 +62,7 @@ def supervisor_node(state: AgentState):
         
         # Guardrail against the LLM returning an empty or hallucinated node name
         # {"accounts_agent", "common_agent", "loans_agent", "FINISH"}
-        valid_nodes = {"common_agent", "FINISH"}
+        valid_nodes = {"accounts_agent","common_agent", "FINISH"}
         if not decision or decision.next_node not in valid_nodes:
             logger.warning(f"[ROUTING ANOMALY] Invalid node returned: '{getattr(decision, 'next_node', None)}'. Defaulting to common_agent.")
             return {"next_node": "common_agent"}

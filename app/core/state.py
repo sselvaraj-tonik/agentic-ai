@@ -14,6 +14,6 @@ class RouteResponse(BaseModel):
     Structured response from the supervisor LLM.
     """
     # ["accounts_agent", "common_agent", "loans_agent", "FINISH"]
-    next_node: Literal["common_agent", "FINISH"] = Field(
+    next_node: Literal["accounts_agent", "common_agent", "FINISH"] = Field(
         description="The exact agent to route the user to based on their request. Use FINISH if the user's task is done."
     )
