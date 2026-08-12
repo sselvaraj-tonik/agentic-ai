@@ -46,12 +46,27 @@ async def chat_endpoint(
             )
 
         last_message = messages[-1]
+        response_text = last_message.content if isinstance(last_message.content, str) else str(last_message.content)
         latency = (time.time() - start_time) * 1000
+
+        # Guard against degenerate LLM outputs: an empty turn, or one that just
+        # parrots the user's query back verbatim (a known failure mode of smaller
+        # local models). Surface a safe fallback instead of the garbled reply.
+        normalized_response = response_text.strip()
+        if not normalized_response or normalized_response.lower() == query.strip().lower():
+            logger.warning(
+                f"Degenerate model response for thread_id={thread_id} "
+                f"(empty or echoed query); returning fallback."
+            )
+            response_text = (
+                "I'm sorry, I wasn't able to process that properly. "
+                "Could you please rephrase your question?"
+            )
 
         logger.info(f"Chat request completed in {latency:.2f}ms")
 
         return ChatResponse(
-            response=last_message.content,
+            response=response_text,
             latency_ms=latency
         )
 
@@ -61,6 +76,9 @@ async def chat_endpoint(
         error_details = traceback.format_exc()
         logger.error(f"Chat endpoint error for thread_id={thread_id}: {str(e)}")
         logger.error(f"Full Traceback: {error_details}")
-        
-        # Raise the actual error detail to the client temporarily to debug
-        raise HTTPException(status_code=500, detail=str(e))
+
+        # Return a generic message to the client; details stay in the server logs.
+        raise HTTPException(
+            status_code=500,
+            detail="An internal error occurred while processing your request. Please try again later."
+        )
