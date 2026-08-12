@@ -1,6 +1,7 @@
 from langchain_core.tools import tool
 import logging
 from app.core.database import get_vector_store
+from app.config.settings import settings
 from app.modules.common.schemas import SearchCompanyKnowledgeInput
 
 logger = logging.getLogger(__name__)
@@ -22,15 +23,30 @@ def search_company_knowledge(query: str) -> str:
             return "Error: Company knowledge base is currently unavailable."
 
     try:
-        # Perform similarity search, returning top 3 results
-        results = vector_store.similarity_search(query, k=3)
+        # Retrieve top-K candidates with their relevance scores (0-1, higher = closer).
+        scored_results = vector_store.similarity_search_with_relevance_scores(
+            query, k=settings.KB_SEARCH_TOP_K
+        )
 
-        if not results:
+        # Keep only chunks that clear the relevance threshold. This prevents
+        # off-topic or vague queries (e.g. greetings) from surfacing arbitrary
+        # FAQs just because they are the "nearest" vectors.
+        relevant = [
+            (doc, score)
+            for doc, score in scored_results
+            if score >= settings.KB_RELEVANCE_THRESHOLD
+        ]
+
+        if not relevant:
+            logger.info(
+                f"No FAQ chunks cleared the relevance threshold "
+                f"({settings.KB_RELEVANCE_THRESHOLD}) for query: '{query}'"
+            )
             return "No relevant company knowledge found for your query."
 
         # Format the results into a readable string
         formatted_results = []
-        for i, doc in enumerate(results, start=1):
+        for i, (doc, _score) in enumerate(relevant, start=1):
             title = doc.metadata.get('title', f"Result {i}")
             formatted_results.append(f"### {title}\n{doc.page_content}")
 
