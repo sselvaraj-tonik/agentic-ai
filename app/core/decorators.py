@@ -1,28 +1,31 @@
 import time
 import functools
 from app.config.logging import logger
-from app.config.settings import settings
 
 def log_execution_time(func):
     """
-    Decorator to log the execution time of a function if DEBUG is enabled.
-    Also logs when the function starts and ends, helping trace the execution path.
+    Decorator that logs the execution time of a function.
     """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        if not settings.DEBUG:
-            return func(*args, **kwargs)
-
-        func_name = func.__name__
-        logger.debug(f"[START] Executing: {func_name}")
-
         start_time = time.time()
-        try:
-            result = func(*args, **kwargs)
-            return result
-        finally:
-            end_time = time.time()
-            elapsed_time = end_time - start_time
-            logger.debug(f"[END] {func_name} completed in {elapsed_time:.4f} seconds")
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        duration = end_time - start_time
+        logger.info(f"Function '{func.__name__}' executed in {duration:.4f} seconds")
+        return result
+    return wrapper
 
+def async_log_execution_time(func):
+    """
+    Decorator that logs the execution time of an asynchronous function.
+    """
+    @functools.wraps(func)
+    async def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = await func(*args, **kwargs)
+        end_time = time.time()
+        duration = end_time - start_time
+        logger.info(f"Async function '{func.__name__}' executed in {duration:.4f} seconds")
+        return result
     return wrapper
