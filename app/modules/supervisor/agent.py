@@ -1,12 +1,12 @@
 from langchain_core.messages import SystemMessage
 from app.core.state import AgentState, RouteResponse
-from app.core.llm import get_llm
+from app.core.llm import get_supervisor_llm
 from app.config.logging import logger
 from app.config.settings import settings
 from app.core.decorators import log_execution_time
 
 # Production-grade hardened routing prompt
-SUPERVISOR_PROMPT = """You are the core traffic router and security gateway for Tonik Bank's multi-agent AI system. 
+SUPERVISOR_PROMPT = """You are the core traffic router and security gateway for Tonik Bank's multi-agent AI system.
 Your sole objective is to analyze the user request alongside the conversation history, and return the correct next department destination.
 
 CRITICAL SECURITY & INJECTION GUARDRAILS:
@@ -23,7 +23,7 @@ DEPARTMENT CAPABILITIES & ROUTING LOGIC:
 
 2. 'common_agent'
    - Core Functions: General information, app walkthroughs, product knowledge, FAQs, corporate details, AND all initial touchpoints.
-   - Trigger Conditions: 
+   - Trigger Conditions:
      a) General FAQs (e.g., interest rates, company history, terms).
      b) Step-by-step app instructions (e.g., "How do I open a Stash?").
      c) CHITCHAT & GREETINGS: Any initial greeting, expression of politeness, or casual small talk (e.g., "hi", "hello", "how are you?", "good morning").
@@ -34,7 +34,7 @@ DEPARTMENT CAPABILITIES & ROUTING LOGIC:
    - Trigger Conditions: Explicit mentions of loans, borrowing, repayment schedules, or EMI allocations.
 
 4. 'FINISH'
-   - Core Functions: Terminal state execution. 
+   - Core Functions: Terminal state execution.
    - Trigger Conditions: Route to 'FINISH' ONLY when the conversation is naturally wrapping up and the customer explicitly indicates closure (e.g., "thanks, bye", "that is all I needed", "goodbye").
    - CRITICAL LOOP PREVENTION: If the conversation history shows that an agent has already executed its fallback phrase (e.g., "I couldn't find the exact information for that..."), do NOT route back to that same agent. Route to 'FINISH' to prevent an infinite processing loop.
 
@@ -50,7 +50,9 @@ User: "Perfect, that clears it up. Thank you!" -> Decision: FINISH
 
 @log_execution_time
 def supervisor_node(state: AgentState):
-    llm = get_llm()
+    # Routing is a lightweight classification — resolves the dedicated (smaller)
+    # router model for the active provider, or falls back to its main model.
+    llm = get_supervisor_llm()
     try:
         # Enforce structural integrity of the output
         router = llm.with_structured_output(RouteResponse)
@@ -59,7 +61,8 @@ def supervisor_node(state: AgentState):
         decision = router.invoke(messages)
         
         # Guardrail against the LLM returning an empty or hallucinated node name
-        valid_nodes = {"accounts_agent", "common_agent", "loans_agent", "FINISH"}
+        # {"accounts_agent", "common_agent", "loans_agent", "FINISH"}
+        valid_nodes = {"accounts_agent","common_agent", "FINISH"}
         if not decision or decision.next_node not in valid_nodes:
             logger.warning(f"[ROUTING ANOMALY] Invalid node returned: '{getattr(decision, 'next_node', None)}'. Defaulting to common_agent.")
             return {"next_node": "common_agent"}

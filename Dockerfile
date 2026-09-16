@@ -14,8 +14,9 @@ COPY requirements.txt .
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the current directory contents into the container at /code
+# Copy the application code and bundled frontend into the container at /code
 COPY app/ ./app/
+COPY chat-screen/ ./chat-screen/
 
 # Expose port 8000
 EXPOSE 8000
@@ -28,4 +29,4 @@ ENV OLLAMA_BASE_URL="http://host.docker.internal:11434"
 ENV OLLAMA_MODEL="llama3"
 
 # Run uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.server.main:app", "--host", "0.0.0.0", "--port", "8000"]
