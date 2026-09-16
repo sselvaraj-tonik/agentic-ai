@@ -8,6 +8,8 @@ class AgentState(MessagesState):
     Inherits from MessagesState to store chat history.
     """
     next_node: str
+    # Request-scoped trace id, carried so each node can re-bind it for logging.
+    trace_id: str
 
 class RouteResponse(BaseModel):
     """

@@ -4,6 +4,7 @@ from app.core.llm import get_supervisor_llm
 from app.config.logging import logger
 from app.config.settings import settings
 from app.core.decorators import log_execution_time
+from app.core.tracing import bind_trace_id_from_state
 
 # Production-grade hardened routing prompt
 SUPERVISOR_PROMPT = """You are the core traffic router and security gateway for Tonik Bank's multi-agent AI system.
@@ -50,6 +51,7 @@ User: "Perfect, that clears it up. Thank you!" -> Decision: FINISH
 
 @log_execution_time
 def supervisor_node(state: AgentState):
+    bind_trace_id_from_state(state)
     # Routing is a lightweight classification — resolves the dedicated (smaller)
     # router model for the active provider, or falls back to its main model.
     llm = get_supervisor_llm()

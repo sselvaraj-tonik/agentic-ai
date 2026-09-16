@@ -1,3 +1,4 @@
+import logging
 import re
 import time
 from typing import Optional
@@ -5,6 +6,8 @@ from typing import Optional
 from app.modules.knowledge.matchers.base import Matcher
 from app.modules.knowledge.types import QueryContext, MatchResult
 from app.modules.knowledge import db
+
+logger = logging.getLogger(__name__)
 
 _TOKEN = re.compile(r"\w+|\W+")
 
@@ -43,6 +46,9 @@ class SpellCorrector(Matcher):
             for tok in _TOKEN.findall(ctx.text)
         )
         if corrected != ctx.text:
+            logger.info("spell: corrected %r -> %r", ctx.text, corrected)
             ctx.text = corrected
             ctx.reset_embedding()
+        else:
+            logger.debug("spell: no correction (dict size=%d)", len(mapping))
         return None

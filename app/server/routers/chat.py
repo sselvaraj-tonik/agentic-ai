@@ -1,11 +1,12 @@
 from typing import Annotated
-from fastapi import APIRouter, HTTPException, Form, Request
+from fastapi import APIRouter, HTTPException, Form, Request, Response
 from pydantic import BaseModel
 from langchain_core.messages import HumanMessage
 from app.graph.builder import graph_executor
 from app.config.logging import logger
 from app.core.decorators import async_log_execution_time
 from app.core.security import mask_pii
+from app.core.tracing import resolve_trace_id, get_trace_id
 import time
 import asyncio
 
@@ -19,10 +20,18 @@ router = APIRouter()
 @async_log_execution_time
 async def chat_endpoint(
     request: Request,
+    response: Response,
     query: Annotated[str, Form()],
     thread_id: Annotated[str, Form()] = "default_thread_1"
 ):
     start_time = time.time()
+
+    # Establish the trace id for this request: reuse an upstream id if provided
+    # (cross-service correlation via Kong/ConvoBanking), else mint a new one.
+    incoming = request.headers.get("X-Trace-Id") or request.headers.get("X-Request-Id")
+    trace_id = resolve_trace_id(incoming)
+    response.headers["X-Trace-Id"] = trace_id
+
     # Mask input query for logging
     masked_query = mask_pii(query)
     logger.info(f"Received chat request: thread_id={thread_id}, query={masked_query}")
@@ -30,11 +39,12 @@ async def chat_endpoint(
     try:
         # Pass the thread_id into the LangGraph config
         config = {"configurable": {"thread_id": thread_id}}
-        
+
         # In a real async environment, we should use ainvoke to avoid blocking
-        # LangGraph supports ainvoke
+        # LangGraph supports ainvoke. trace_id is carried in state so each node
+        # can re-bind it for logging even when run in a worker thread.
         result = await graph_executor.ainvoke(
-            {"messages": [HumanMessage(content=query)]},
+            {"messages": [HumanMessage(content=query)], "trace_id": trace_id},
             config=config
         )
 

@@ -1,9 +1,14 @@
+import logging
+
 from langchain_core.messages import HumanMessage, AIMessage
 
 from app.core.state import AgentState
 from app.core.decorators import log_execution_time
+from app.core.tracing import bind_trace_id_from_state
 from app.modules.knowledge import answer_query
 from app.modules.knowledge.render import to_text
+
+logger = logging.getLogger(__name__)
 
 # The common agent has no LLM tools: it runs the deterministic knowledge funnel
 # (spell -> small talk -> ontology -> FAQ -> open-text RAG -> fallback). The
@@ -26,6 +31,12 @@ def common_agent_node(state: AgentState):
     return its answer directly. Verbatim tiers (small talk, FAQ, ontology) and
     the fallback answer without any LLM; only the open-text RAG tier generates.
     """
+    bind_trace_id_from_state(state)
     query = _latest_user_text(state)
+    logger.info("Knowledge funnel: received query %r", query)
     result = answer_query(query)
+    logger.info(
+        "Knowledge funnel: resolved by tier '%s' (kind=%s, score=%s)",
+        result.source, result.kind, result.score,
+    )
     return {"messages": [AIMessage(content=to_text(result))]}
