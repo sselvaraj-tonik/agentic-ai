@@ -49,8 +49,16 @@ def build_graph():
         agent_name = f"{agent_config['name']}_agent"
         tool_name = f"{agent_config['name']}_tools"
 
-        # Add Core Logic and Tool Nodes
+        # Add Core Logic node
         builder.add_node(agent_name, agent_config["node"])
+
+        # Tool-less agents (e.g. the deterministic 'common' knowledge funnel)
+        # skip tool wiring entirely and route straight to END.
+        if not agent_config["tools"]:
+            builder.add_edge(agent_name, END)
+            continue
+
+        # Add Tool Node
         builder.add_node(tool_name, ToolNode(agent_config["tools"]))
 
         # Agent -> Tool Routing Edge

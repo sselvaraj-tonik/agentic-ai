@@ -14,7 +14,7 @@
 6. [Environment Configuration](#-environment-configuration)
 7. [Database Setup — PostgreSQL + pgvector](#-database-setup--postgresql--pgvector)
 8. [Running Locally](#-running-locally)
-9. [Ingesting the FAQ Knowledge Base](#-ingesting-the-faq-knowledge-base)
+9. [FAQ Knowledge Base](#-faq-knowledge-base)
 10. [Running with Docker](#-running-with-docker)
 11. [API Reference](#-api-reference)
 12. [LLM Provider Configuration](#-llm-provider-configuration)
@@ -35,7 +35,7 @@ This project is a **supervisor-driven multi-agent AI** designed for Tonik Bank's
 - 🔍 **Vector Search** — FAQ knowledge base stored in PostgreSQL (pgvector) with Ollama embeddings
 - 🔒 **PII Masking** — Phone numbers, emails, card numbers, and account numbers masked in logs
 - ♻️ **Stateful Conversations** — Thread-scoped memory via LangGraph checkpointers (in-memory or PostgreSQL)
-- 🌍 **Multi-Environment** — Separate `.env` files for development, staging, and production
+- 🌍 **Multi-Environment** — Separate `.env` files for development, sit, uat, and production
 
 ---
 
@@ -127,14 +127,10 @@ agentic-ai/
 │   │       ├── tools.py        # search_company_knowledge (pgvector similarity search)
 │   │       └── schemas.py      # Pydantic input schema for knowledge search
 │   │
-│   ├── scripts/
-│   │   └── ingest.py           # FAQ ingestion: Drupal → HTML strip → chunk → embed → pgvector
-│   │
 │   └── server/
 │       ├── main.py             # FastAPI app init, middleware, router mounting, /health
 │       └── routers/
-│           ├── chat.py         # POST /chat — async graph invocation with thread_id
-│           └── ingest.py       # POST /ingest/faqs — triggers FAQ ingestion pipeline
+│           └── chat.py         # POST /chat — async graph invocation with thread_id
 │
 ├── chat-screen/                # Bundled frontend chat UI
 │   ├── index.html
@@ -146,7 +142,8 @@ agentic-ai/
 │
 ├── .env.example                # Template — copy to .env.<environment>
 ├── .env.development            # Local dev settings
-├── .env.staging                # Staging settings (Ollama, PII masking ON)
+├── .env.sit                    # SIT settings (vLLM, Postgres, PII masking ON)
+├── .env.uat                    # UAT settings (vLLM, Postgres, PII masking ON)
 ├── .env.production             # Production settings (vLLM, PostgreSQL persistence)
 ├── Dockerfile                  # Python 3.12-slim image
 ├── requirements.txt            # All Python dependencies
@@ -165,7 +162,7 @@ agentic-ai/
 | **LLM (Production)** | [vLLM](https://docs.vllm.ai/) (OpenAI-compatible API) |
 | **Embeddings** | `nomic-embed-text` via Ollama |
 | **Vector Store** | PostgreSQL + [pgvector](https://github.com/pgvector/pgvector) via `langchain-postgres` |
-| **State Persistence** | LangGraph `MemorySaver` (dev) / `PostgresSaver` (staging/prod) |
+| **State Persistence** | LangGraph `MemorySaver` (dev) / `PostgresSaver` (sit/uat/prod) |
 | **Settings** | [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) (`pydantic-settings`) |
 | **ASGI Server** | [Uvicorn](https://www.uvicorn.org/) |
 | **FAQ Source** | Drupal CMS JSON:API (`/jsonapi/node/faq`) |
@@ -220,9 +217,12 @@ The app uses **Pydantic Settings** and selects the correct `.env` file based on 
 | File | Purpose |
 |---|---|
 | `.env.example` | Template — copy this as your starting point |
-| `.env.development` | Local dev (Ollama, in-memory persistence, PII masking off) |
-| `.env.staging` | Staging server (Ollama, Postgres persistence, PII masking on) |
-| `.env.production` | Production (vLLM, Postgres persistence, PII masking on) |
+| `.env.development` | Local dev (**Ollama**, in-memory persistence, PII masking off) |
+| `.env.sit` | SIT (**vLLM**, Postgres persistence, PII masking on) |
+| `.env.uat` | UAT (**vLLM**, Postgres persistence, PII masking on) |
+| `.env.production` | Production (**vLLM**, Postgres persistence, PII masking on) |
+
+> **Note:** Only `development` uses Ollama. `sit`, `uat`, and `production` all use vLLM.
 
 ### Step 1 — Create your local config
 
@@ -245,7 +245,6 @@ OLLAMA_BASE_URL=http://127.0.0.1:11434
 
 # ── External APIs ──────────────────────────────────────────
 BANK_API_BASE_URL=https://test.alb.tonikbank.com/customer/v1/
-DRUPAL_FAQ_URL=http://staging3.tonikbank.com/jsonapi/node/faq
 API_TIMEOUT=10
 
 # ── Database ───────────────────────────────────────────────
@@ -253,10 +252,10 @@ API_TIMEOUT=10
 DATABASE_URL=postgresql+psycopg://suriya:123@localhost:5432/postgres
 
 # ── Persistence ────────────────────────────────────────────
-PERSISTENCE_TYPE=memory                     # "memory" (dev) or "postgres" (staging/prod)
+PERSISTENCE_TYPE=memory                     # "memory" (dev) or "postgres" (sit/uat/prod)
 
 # ── Security ───────────────────────────────────────────────
-ENABLE_PII_MASKING=False                    # Set True in staging/prod
+ENABLE_PII_MASKING=False                    # Set True in sit/uat/prod
 
 # ── App ────────────────────────────────────────────────────
 APP_NAME="Banking Agent AI"
@@ -384,32 +383,18 @@ The server starts at **`http://localhost:8000`**.
 
 ---
 
-## 📥 Ingesting the FAQ Knowledge Base
+## 📥 FAQ Knowledge Base
 
-After starting the application, seed the vector database by calling the ingest endpoint **once**:
+FAQ ingestion has been **moved out of this service** into a standalone AWS Lambda
+(`agentic-ai-ingest-lambda`). That service fetches FAQs from Drupal, chunks and
+embeds them, and writes to the `company_faqs` collection in PostgreSQL/pgvector.
 
-```bash
-curl -X POST http://localhost:8000/ingest/faqs
-```
+This service is **read-only** against that collection — it queries the FAQ
+vectors via `search_company_knowledge` but never writes them. Ensure the
+ingestion Lambda has run (and uses the **same embedding model** configured here)
+before relying on knowledge-base answers.
 
-**What this does:**
-1. Fetches all FAQ pages from the configured Drupal CMS URL (handles pagination automatically)
-2. Strips HTML from the content using BeautifulSoup
-3. Chunks text into 1,000-character segments with 200-character overlap
-4. Embeds each chunk using `nomic-embed-text` via Ollama
-5. Upserts all chunks into the `company_faqs` collection in PostgreSQL pgvector
-
-> **Re-run** this endpoint whenever your FAQ content changes in the CMS.
-
-**Expected response:**
-
-```json
-{
-  "status": "success",
-  "chunks_processed": 142,
-  "message": "FAQs ingested successfully."
-}
-```
+See the `agentic-ai-ingest-lambda` repository for deploy and scheduling details.
 
 ---
 
@@ -472,26 +457,6 @@ curl -X POST http://localhost:8000/chat \
 
 ---
 
-### `POST /ingest/faqs`
-
-Triggers the full FAQ ingestion pipeline from Drupal CMS to pgvector.
-
-```bash
-curl -X POST http://localhost:8000/ingest/faqs
-```
-
-**Response:**
-
-```json
-{
-  "status": "success",
-  "chunks_processed": 142,
-  "message": "FAQs ingested successfully."
-}
-```
-
----
-
 ### `GET /health`
 
 Returns application health status.
@@ -516,14 +481,15 @@ curl http://localhost:8000/health
 
 The app supports two LLM backends, switchable via the `LLM_PROVIDER` setting.
 
-### Ollama *(Development / Staging)*
+### Ollama *(Development only)*
 
-Set in `.env.development` or `.env.staging`:
+Set in `.env.development`:
 
 ```env
 LLM_PROVIDER=ollama
 OLLAMA_MODEL=llama3.1
 OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_EMBED_MODEL=nomic-embed-text
 ```
 
 **Available models (recommended):**
@@ -533,15 +499,16 @@ OLLAMA_BASE_URL=http://127.0.0.1:11434
 | `llama3.1` | 4.9 GB | Slow on CPU | Best accuracy |
 | `llama3.2:3b` | 2.0 GB | Fast on CPU | Development / testing |
 
-### vLLM *(Production)*
+### vLLM *(SIT / UAT / Production)*
 
-Set in `.env.production`:
+Set in `.env.sit`, `.env.uat`, or `.env.production`:
 
 ```env
 LLM_PROVIDER=vllm
-VLLM_MODEL=llama3.1
+VLLM_MODEL=Qwen/Qwen2.5-7B-Instruct
 VLLM_BASE_URL=http://vllm-server:8000/v1
 VLLM_API_KEY=your-api-key
+VLLM_EMBED_MODEL=BAAI/bge-base-en-v1.5   # must be an embedding model your vLLM serves
 ```
 
 > vLLM exposes an OpenAI-compatible API, so the app connects via `ChatOpenAI` internally.
@@ -554,7 +521,8 @@ The application auto-selects the correct `.env` file using the `APP_ENV` variabl
 
 ```
 APP_ENV=development  →  loads .env.development
-APP_ENV=staging      →  loads .env.staging
+APP_ENV=sit          →  loads .env.sit
+APP_ENV=uat          →  loads .env.uat
 APP_ENV=production   →  loads .env.production
 ```
 
@@ -562,22 +530,22 @@ APP_ENV=production   →  loads .env.production
 
 ```powershell
 # Windows PowerShell
-$env:APP_ENV="staging"; uvicorn app.server.main:app --reload
+$env:APP_ENV="uat"; uvicorn app.server.main:app --reload
 ```
 
 ```bash
 # Linux / macOS
-APP_ENV=staging uvicorn app.server.main:app --reload
+APP_ENV=uat uvicorn app.server.main:app --reload
 ```
 
 **Environment summary:**
 
-| Setting | Development | Staging | Production |
-|---|---|---|---|
-| `LLM_PROVIDER` | `ollama` | `ollama` | `vllm` |
-| `PERSISTENCE_TYPE` | `memory` | `postgres` | `postgres` |
-| `ENABLE_PII_MASKING` | `False` | `True` | `True` |
-| `DEBUG` | `True` | `True` | `False` |
+| Setting | Development | SIT | UAT | Production |
+|---|---|---|---|---|
+| `LLM_PROVIDER` | `ollama` | `vllm` | `vllm` | `vllm` |
+| `PERSISTENCE_TYPE` | `memory` | `postgres` | `postgres` | `postgres` |
+| `ENABLE_PII_MASKING` | `False` | `True` | `True` | `True` |
+| `DEBUG` | `True` | `True` | `False` | `False` |
 
 ---
 
@@ -667,14 +635,6 @@ curl -X POST http://localhost:8000/chat --form 'query="Hello"'
 
 ---
 
-### Duplicate FAQ data after re-ingesting
-
-**Cause:** Each call to `POST /ingest/faqs` appends new chunks without clearing old ones.
-
-**Fix:** The `ingest.py` script has a commented-out `vector_store.drop_tables()` call. Uncomment it in `app/scripts/ingest.py` if you need clean re-ingestion. Alternatively, re-run the Docker container to wipe the volume.
-
----
-
 ## 📦 Dependencies
 
 All packages are listed in `requirements.txt`. Key dependencies:
@@ -688,10 +648,8 @@ All packages are listed in `requirements.txt`. Key dependencies:
 | `langchain-ollama` | Ollama LLM + embedding integration |
 | `langchain-openai` | OpenAI-compatible LLM (used for vLLM) |
 | `langchain-postgres` | PGVector vector store + PostgresSaver checkpointer |
-| `langchain-text-splitters` | Text chunking for FAQ ingestion |
 | `pydantic-settings` | Environment-based configuration |
 | `psycopg[binary]` | PostgreSQL driver (psycopg v3) |
-| `beautifulsoup4` | HTML stripping during FAQ ingestion |
 | `python-multipart` | Form data parsing for `/chat` endpoint |
 | `pgvector` | pgvector Python client |
 | `sqlalchemy` | ORM / DB connection layer |
