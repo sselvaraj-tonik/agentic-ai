@@ -26,7 +26,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include Routers
 app.include_router(chat.router)
 
 # Mount your frontend directory (ensure the folder name matches your directory, e.g., "chat-screen")
