@@ -119,11 +119,19 @@ async def chat_websocket(websocket: WebSocket, thread_id: str):
                     await manager.send_personal_message({"type": "pong"}, websocket)
                     continue
                 elif msg_type == "init_session":
-                    # Handle init_session payload
+                    # Handle init_session payload: send system_status + quick_links (plain names array)
                     logger.info(f"Initialized session for thread {thread_id} with data {payload.get('user', {})}")
+                    try:
+                        from app.modules.knowledge.db import get_all_quick_link_names
+                        quick_links = get_all_quick_link_names()
+                    except Exception as e:
+                        logger.error(f"Error fetching quick links on session init: {e}")
+                        quick_links = []
+
                     await manager.send_personal_message({
                         "type": "system_status",
-                        "status": "ready"
+                        "status": "ready",
+                        "quick_links": quick_links
                     }, websocket)
                     continue
 
@@ -148,14 +156,25 @@ async def chat_websocket(websocket: WebSocket, thread_id: str):
                 # Process the message using the shared graph executor
                 response_text, latency = await process_chat_message(query, thread_id, trace_id)
                 
-                # Broadcast the response back to all clients connected to this thread
-                await manager.broadcast_to_thread({
+                # Check if response_text is a JSON string representing a quick link questions array
+                ws_response = {
                     "type": "chat_response",
                     "text": response_text,
                     "latency_ms": latency,
                     "trace_id": trace_id,
                     "status": "success"
-                }, thread_id)
+                }
+
+                try:
+                    parsed_json = json.loads(response_text)
+                    if isinstance(parsed_json, list):
+                        ws_response["quick_links"] = parsed_json
+                        ws_response["text"] = ""
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+                # Broadcast the response back to all clients connected to this thread
+                await manager.broadcast_to_thread(ws_response, thread_id)
 
             except Exception as e:
                 logger.error(f"Error processing message for thread {thread_id}: {e}")

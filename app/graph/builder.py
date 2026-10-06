@@ -39,34 +39,40 @@ def create_tools_condition(tool_node_name: str):
 def build_graph():
     builder = StateGraph(AgentState)
 
-    # 1. Add Core Orchestrator (Supervisor)
-    builder.add_node("supervisor", supervisor_node)
-    builder.add_edge(START, "supervisor")
-    builder.add_conditional_edges("supervisor", route_supervisor)
+    if settings.BYPASS_SUPERVISOR:
+        # Direct line: bypass supervisor LLM router node to eliminate routing latency
+        builder.add_node("common_agent", common_agent_node)
+        builder.add_edge(START, "common_agent")
+        builder.add_edge("common_agent", END)
+    else:
+        # 1. Add Core Orchestrator (Supervisor)
+        builder.add_node("supervisor", supervisor_node)
+        builder.add_edge(START, "supervisor")
+        builder.add_conditional_edges("supervisor", route_supervisor)
 
-    # 2. Dynamically Loop, Register, and Wire All Specialized Agents
-    for agent_config in AGENT_REGISTRY:
-        agent_name = f"{agent_config['name']}_agent"
-        tool_name = f"{agent_config['name']}_tools"
+        # 2. Dynamically Loop, Register, and Wire All Specialized Agents
+        for agent_config in AGENT_REGISTRY:
+            agent_name = f"{agent_config['name']}_agent"
+            tool_name = f"{agent_config['name']}_tools"
 
-        # Add Core Logic node
-        builder.add_node(agent_name, agent_config["node"])
+            # Add Core Logic node
+            builder.add_node(agent_name, agent_config["node"])
 
-        # Tool-less agents (e.g. the deterministic 'common' knowledge funnel)
-        # skip tool wiring entirely and route straight to END.
-        if not agent_config["tools"]:
-            builder.add_edge(agent_name, END)
-            continue
+            # Tool-less agents (e.g. the deterministic 'common' knowledge funnel)
+            # skip tool wiring entirely and route straight to END.
+            if not agent_config["tools"]:
+                builder.add_edge(agent_name, END)
+                continue
 
-        # Add Tool Node
-        builder.add_node(tool_name, ToolNode(agent_config["tools"]))
+            # Add Tool Node
+            builder.add_node(tool_name, ToolNode(agent_config["tools"]))
 
-        # Agent -> Tool Routing Edge
-        tools_condition = create_tools_condition(tool_name)
-        builder.add_conditional_edges(agent_name, tools_condition)
+            # Agent -> Tool Routing Edge
+            tools_condition = create_tools_condition(tool_name)
+            builder.add_conditional_edges(agent_name, tools_condition)
 
-        # Tool -> Agent Loopback Edge
-        builder.add_edge(tool_name, agent_name)
+            # Tool -> Agent Loopback Edge
+            builder.add_edge(tool_name, agent_name)
 
     # 3. Initialize Checkpointer Based on Configuration
     if settings.PERSISTENCE_TYPE == PersistenceType.POSTGRES:

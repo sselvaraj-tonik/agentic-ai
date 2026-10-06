@@ -74,7 +74,7 @@ class Settings(BaseSettings):
     # and is appended automatically if omitted. Valid names are the keys in
     # app/modules/knowledge/pipeline.REGISTRY.
     INFERENCE_ORDER: List[str] = [
-        "spell", "small_talk", "ontology", "faq", "open_text", "fallback"
+        "spell", "small_talk", "quick_link", "ontology", "faq", "open_text", "fallback"
     ]
 
     # Small talk (semantic match, verbatim answer). Higher = stricter.
@@ -93,6 +93,9 @@ class Settings(BaseSettings):
     # Ontology "did you mean" — trigram similarity floor for a bare utterance.
     ONTOLOGY_TRGM_THRESHOLD: float = 0.6
 
+    # Quick links trigram similarity floor for quick link tab name matching.
+    QUICK_LINK_TRGM_THRESHOLD: float = 0.6
+
     # Persistence Configuration
     PERSISTENCE_TYPE: PersistenceType = PersistenceType.MEMORY
 
@@ -100,6 +103,8 @@ class Settings(BaseSettings):
     ENABLE_PII_MASKING: bool = False
 
     # Application Configuration
+    # Set to True to bypass the supervisor LLM router and connect directly to common_agent
+    BYPASS_SUPERVISOR: bool = True
     APP_NAME: str = "Banking Agent AI"
     APP_VERSION: str = "1.2.0"
     DEBUG: bool = False

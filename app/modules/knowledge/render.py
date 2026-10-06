@@ -43,9 +43,15 @@ def _pick_channel(answers: list, channel: str) -> dict:
     return answers[0]
 
 
+import json
+
+
 def to_text(result: MatchResult) -> str:
     """Final string for the chat response."""
+    if result.source == "quick_link" and result.suggestions:
+        return json.dumps(result.suggestions)
     if result.kind == "suggestions" and result.suggestions:
+        header = result.text or "Did you mean:"
         lines = "\n".join(f"• {s}" for s in result.suggestions)
-        return f"Did you mean:\n{lines}"
+        return f"{header}\n{lines}"
     return result.text or ""

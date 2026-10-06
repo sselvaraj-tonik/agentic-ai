@@ -14,3 +14,4 @@ psycopg[binary]
 asyncpg
 pgvector
 sqlalchemy
+langgraph.checkpoint.postgres

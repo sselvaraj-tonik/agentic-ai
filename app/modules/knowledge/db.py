@@ -117,3 +117,40 @@ def load_spell_map() -> dict[str, str]:
                 if wrong:
                     mapping[str(wrong).lower()] = correct
     return mapping
+
+
+# ── Quick Links: exact / trigram lookup on the normalized name ─────────────
+def quick_link_lookup(norm: str, trgm_threshold: float = 0.6) -> Optional[dict]:
+    with _cur() as cur:
+        cur.execute(
+            """
+            SELECT name, variants, similarity(name_norm, %s) AS sim
+            FROM quick_link
+            WHERE name_norm = %s OR similarity(name_norm, %s) >= %s
+            ORDER BY (name_norm = %s) DESC, sim DESC
+            LIMIT 1
+            """,
+            (norm, norm, norm, trgm_threshold, norm),
+        )
+        row = cur.fetchone()
+        if row:
+            return {"name": row["name"], "variants": list(row["variants"])}
+        return None
+
+
+def get_all_quick_links() -> list[dict]:
+    with _cur() as cur:
+        cur.execute("SELECT id, name, variants FROM quick_link ORDER BY id")
+        return [
+            {"id": r["id"], "name": r["name"], "variants": list(r["variants"])}
+            for r in cur.fetchall()
+        ]
+
+
+def get_all_quick_link_names() -> list[str]:
+    """Returns a plain array of quick link names (e.g. ['Log-in', ...])."""
+    with _cur() as cur:
+        cur.execute("SELECT name FROM quick_link ORDER BY id")
+        return [r["name"] for r in cur.fetchall()]
+
+

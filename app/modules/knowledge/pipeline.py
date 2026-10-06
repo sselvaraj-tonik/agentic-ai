@@ -4,6 +4,7 @@ import time
 from app.modules.knowledge.matchers.base import Matcher
 from app.modules.knowledge.matchers.spell import SpellCorrector
 from app.modules.knowledge.matchers.small_talk import SmallTalkMatcher
+from app.modules.knowledge.matchers.quick_link import QuickLinkMatcher
 from app.modules.knowledge.matchers.ontology import OntologyMatcher
 from app.modules.knowledge.matchers.faq import FaqMatcher
 from app.modules.knowledge.matchers.open_text import OpenTextMatcher
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 REGISTRY: dict[str, type[Matcher]] = {
     "spell": SpellCorrector,
     "small_talk": SmallTalkMatcher,
+    "quick_link": QuickLinkMatcher,
     "ontology": OntologyMatcher,
     "faq": FaqMatcher,
     "open_text": OpenTextMatcher,
@@ -28,6 +30,7 @@ REGISTRY: dict[str, type[Matcher]] = {
 TECHNIQUE: dict[str, str] = {
     "spell": "in-memory {wrong->correct} map",
     "small_talk": "embed + HNSW cosine (verbatim)",
+    "quick_link": "normalized exact / pg_trgm on quick link tab name",
     "ontology": "normalized exact / pg_trgm on full message",
     "faq": "1x embed + HNSW cosine, threshold-gated (verbatim)",
     "open_text": "reuse embed + HNSW + LLM generate",
