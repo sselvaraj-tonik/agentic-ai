@@ -15,7 +15,6 @@ class SmallTalkMatcher(Matcher):
 
     def run(self, ctx: QueryContext) -> Optional[MatchResult]:
         row = db.small_talk_best(ctx.embedding())
-        print(row["score"])
         if row and row["score"] >= settings.SMALLTALK_THRESHOLD:
             return MatchResult(
                 source="small_talk",
