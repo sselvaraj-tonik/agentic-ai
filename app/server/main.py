@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 from app.config.settings import settings
 from app.config.logging import setup_logging
-from app.server.routers import chat, ingest
+from app.server.routers import chat
 
 # Setup logging
 setup_logging()
@@ -26,9 +26,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include Routers
 app.include_router(chat.router)
-app.include_router(ingest.router)
 
 # Mount your frontend directory (ensure the folder name matches your directory, e.g., "chat-screen")
 # html=True automatically serves index.html when you hit the root of this path
