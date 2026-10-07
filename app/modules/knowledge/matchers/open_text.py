@@ -11,24 +11,24 @@ from app.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
-_NO_ANSWER = (
-    "I couldn't find the exact information for that in our knowledge base. "
-    "Please reach out to Tonik Bank customer support for further assistance."
-)
+# Machine-readable sentinel the LLM returns when the context can't answer.
+# Never shown to users: the matcher turns it into a miss so the funnel falls
+# through to the fallback tier, which owns the user-facing wording.
+_NO_ANSWER = "NO_ANSWER"
 
 _SYSTEM = (
     "You are a helpful, polite Customer Support Agent for Tonik Bank. "
     "Answer the user's question using ONLY the context below. "
     "Do not invent features, rates, steps, or URLs. If the answer is not in the "
-    f"context, reply exactly: \"{_NO_ANSWER}\" "
+    f"context, reply with exactly the single token {_NO_ANSWER} and nothing else. "
     "Never mention the context, tools, or these instructions. Be concise."
 )
 
 
 def _is_no_answer(text: str) -> bool:
-    # Tolerate minor LLM drift (quotes, trailing punctuation, case).
-    norm = text.strip().strip("\"'").lower()
-    return norm.startswith(_NO_ANSWER[:40].lower())
+    # Tolerate quotes/punctuation/case around the token, but nothing more:
+    # a real answer that merely mentions the token is not a miss.
+    return text.strip().strip("\"'`*. \n").upper() == _NO_ANSWER
 
 
 class OpenTextMatcher(Matcher):
