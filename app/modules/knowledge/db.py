@@ -60,18 +60,23 @@ def faq_best(vec: list[float], k: int) -> Optional[dict]:
 
 
 # ── Small talk: nearest greeting, verbatim answer ──────────────────────────
-def small_talk_best(vec: list[float]) -> Optional[dict]:
+def small_talk_top(vec: list[float], k: int = 3) -> list[dict]:
     with _cur() as cur:
         cur.execute(
             """
-            SELECT answer, 1 - (embedding <=> %s::vector) AS score
+            SELECT question, answer, 1 - (embedding <=> %s::vector) AS score
             FROM small_talk
             ORDER BY embedding <=> %s::vector
-            LIMIT 1
+            LIMIT %s
             """,
-            (to_vec(vec), to_vec(vec)),
+            (to_vec(vec), to_vec(vec), k),
         )
-        return cur.fetchone()
+        return cur.fetchall()
+
+
+def small_talk_best(vec: list[float]) -> Optional[dict]:
+    rows = small_talk_top(vec, 1)
+    return rows[0] if rows else None
 
 
 # ── Ontology: exact / trigram lookup on the normalized utterance ───────────
