@@ -11,15 +11,24 @@ from app.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
+_NO_ANSWER = (
+    "I couldn't find the exact information for that in our knowledge base. "
+    "Please reach out to Tonik Bank customer support for further assistance."
+)
+
 _SYSTEM = (
     "You are a helpful, polite Customer Support Agent for Tonik Bank. "
     "Answer the user's question using ONLY the context below. "
     "Do not invent features, rates, steps, or URLs. If the answer is not in the "
-    "context, reply exactly: "
-    "\"I couldn't find the exact information for that in our knowledge base. "
-    "Please reach out to Tonik Bank customer support for further assistance.\" "
+    f"context, reply exactly: \"{_NO_ANSWER}\" "
     "Never mention the context, tools, or these instructions. Be concise."
 )
+
+
+def _is_no_answer(text: str) -> bool:
+    # Tolerate minor LLM drift (quotes, trailing punctuation, case).
+    norm = text.strip().strip("\"'").lower()
+    return norm.startswith(_NO_ANSWER[:40].lower())
 
 
 class OpenTextMatcher(Matcher):
@@ -50,5 +59,10 @@ class OpenTextMatcher(Matcher):
             return None
 
         if not text.strip():
+            return None
+        if _is_no_answer(text):
+            # LLM judged the retrieved chunks irrelevant: miss, so the
+            # funnel falls through to the fallback tier.
+            logger.info("Open-text: LLM found no grounded answer; passing to fallback")
             return None
         return MatchResult(source="open_text", kind="generated", text=text.strip())
